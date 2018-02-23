@@ -9,8 +9,7 @@ library(survival)
 
 ###### type 1
 #
-#
-tempWriteFile <- paste("~/R/GlCoSy/dataForSubmissions/attd2017/admissionDataDT_T1DM.csv",sep=""); reportingDF<-read.csv(tempWriteFile); reportingDF<-data.table(reportingDF); diabetesType="Type 1 Diabetes. "
+#tempWriteFile <- paste("~/R/GlCoSy/dataForSubmissions/attd2017/admissionDataDT_T1DM.csv",sep=""); reportingDF<-read.csv(tempWriteFile); reportingDF<-data.table(reportingDF); diabetesType="Type 1 Diabetes. "
 #
 
 ###### type 1 - hba1c revised code
@@ -20,7 +19,8 @@ tempWriteFile <- paste("~/R/GlCoSy/dataForSubmissions/attd2017/admissionDataDT_T
 #####################################################################################################
 ###### type 2
 #
-# tempWriteFile <- paste("~/R/GlCoSy/source/admissionDataDT_T2DM.csv",sep=""); reportingDF<-read.csv(tempWriteFile); reportingDF<-data.table(reportingDF); diabetesType="Type 2 Diabetes. "
+# 
+tempWriteFile <- paste("~/R/GlCoSy/source/admissionDataDT_T2DM.csv",sep=""); reportingDF<-read.csv(tempWriteFile); reportingDF<-data.table(reportingDF); diabetesType="Type 2 Diabetes. "
 #
 
 # type 2 - hba1c revised code
@@ -117,39 +117,46 @@ cut(plotReportingDF$eAGyyyyDiff,breaks=quantile(plotReportingDF$eAGyyyyDiff, pro
       abline(lm(moreThan_n_CBG$IQR ~ sqrt(moreThan_n_CBG$eAGyyyyDiff^2)),col="red")
 
 ##### plotting the correlation of the three options for admissions with variable nCBG
-      nn = 100
+      correlationFunction <- function(inputFrame, testParameter, n_iterations, plot_minY, plot_maxY) {
       
-      reportMatrix <- as.data.frame(matrix(0, nrow = nn, ncol = 5))
-      colnames(reportMatrix) <- c("min_CBG", "n_IDs", "lastHbA1c", "firstCBG", "AGN")
-      
-      for (i in seq(1, nn, 1)) {
-        # adjust for nCBG
-        n = i # set minimum number of CBGs per admission to calculate the IQR
-        moreThan_n_CBG <- plotReportingDF[nCBGperAdmission > n]
+        nn = n_iterations
         
-        reportMatrix$min_CBG[i] <- i
-        reportMatrix$n_IDs[i] <- nrow(moreThan_n_CBG)
+        reportMatrix <- as.data.frame(matrix(0, nrow = nn, ncol = 5))
+        colnames(reportMatrix) <- c("min_CBG", "n_IDs", "lastHbA1c", "firstCBG", "AGN")
         
-        #plot(moreThan_n_CBG$lastHbA1cInFrame,moreThan_n_CBG$IQR)
-        hba1cTest <- cor.test(moreThan_n_CBG$lastHbA1cInFrame,moreThan_n_CBG$IQR)
-        reportMatrix$lastHbA1c[i] <- hba1cTest$estimate
-        
-        yyyyTest <- cor.test(moreThan_n_CBG$yyyy1,moreThan_n_CBG$IQR)
-        reportMatrix$firstCBG[i] <- yyyyTest$estimate
-        
-        AGNtest <- cor.test(sqrt(moreThan_n_CBG$eAGyyyyDiff^2), moreThan_n_CBG$IQR)
-        reportMatrix$AGN[i] <- AGNtest$estimate
+        for (i in seq(1, nn, 1)) {
+          # adjust for nCBG
+          n = i # set minimum number of CBGs per admission to calculate the IQR
+          moreThan_n_CBG <- inputFrame[nCBGperAdmission > n]
+          test_subset <- testParameter[inputFrame$nCBGperAdmission > n]
+          
+          reportMatrix$min_CBG[i] <- i
+          reportMatrix$n_IDs[i] <- nrow(moreThan_n_CBG)
+          
+          #plot(moreThan_n_CBG$lastHbA1cInFrame,moreThan_n_CBG$IQR)
+          hba1cTest <- cor.test(moreThan_n_CBG$lastHbA1cInFrame,test_subset)
+          reportMatrix$lastHbA1c[i] <- hba1cTest$estimate
+          
+          yyyyTest <- cor.test(moreThan_n_CBG$yyyy1,test_subset)
+          reportMatrix$firstCBG[i] <- yyyyTest$estimate
+          
+          AGNtest <- cor.test(sqrt(moreThan_n_CBG$eAGyyyyDiff^2), test_subset)
+          reportMatrix$AGN[i] <- AGNtest$estimate
         
       }
       
-      plot(reportMatrix$min_CBG, reportMatrix$lastHbA1c, pch = 16, cex = 1, col = "black", ylim = c(0, 0.3))
+      plot(reportMatrix$min_CBG, reportMatrix$lastHbA1c, pch = 16, cex = 1, col = "black", ylim = c(plot_minY, plot_maxY))
       lines(reportMatrix$min_CBG, reportMatrix$lastHbA1c, col = "black")
       points(reportMatrix$min_CBG, reportMatrix$firstCBG, pch = 16, cex = 1, col = "green")
       lines(reportMatrix$min_CBG, reportMatrix$firstCBG, col = "green")
       points(reportMatrix$min_CBG, reportMatrix$AGN, pch = 16, cex = 1, col = "red")
       lines(reportMatrix$min_CBG, reportMatrix$AGN, col = "red")
+      
+      }
       #####
 
+      correlationFunction(plotReportingDF, plotReportingDF$IQR, 100, 0, 0.3)
+      correlationFunction(plotReportingDF, plotReportingDF$admissionDurationDays, 100, -0.3, 0)
 
 ## type 1 cor - 0.203, type 2 - 0.298
 
@@ -219,6 +226,7 @@ plotReportingDF$hypoEpPerDay<-plotReportingDF$ID_ADMISSIONhypoEpisodes4.60 / plo
 attdAbstractHYD<-boxplot(subset(plotReportingDF,admissionDurationDays>1)$hypoEpPerDay ~ cut(subset(plotReportingDF,admissionDurationDays>1)$eAGyyyyDiff,breaks=seq(-30,30,2)),las=3,varwidth=T,ylim=c(0,1),plot=T,main="IQR vs AGN ATTD abstract 1 (x axis)")
 
 attdAbstractHYD<-boxplot(subset(plotReportingDF,admissionDurationDays>1 & yyyy>3.9)$hypoEpPerDay ~ cut(subset(plotReportingDF,admissionDurationDays>1 & yyyy>3.9)$eAGyyyyDiff,breaks=10),las=3,varwidth=T,ylim=c(0,1),plot=T,main="IQR vs AGN ATTD abstract 1 (x axis)")
+
 
 # plot episodes/day
 #sequencePlotSet<-subset(plotReportingDF,admissionDurationDays>4)
