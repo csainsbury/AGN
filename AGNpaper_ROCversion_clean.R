@@ -516,7 +516,7 @@ survivalFunction_mort <- function(survivalFrame, deathEventMarker, rightCensorPo
   
 }
 
-survivalFunction_mort(ROCframe, ROCframe$inHospitalDeath, max(ROCframe$admissionDurationDays), 10, 0.98)
+survivalFunction_mort(ROCframe, ROCframe$inHospitalDeath, max(ROCframe$admissionDurationDays), 30, 0.98)
 
 # remove those who die in hospital
 surviveToDischarge <- ROCframe[deathDateUnix > 0 & (ROCframe$deathDateUnix - (ROCframe$dateplustime1 + ROCframe$admissionDuration)) > (5 * (60*60*24)) | ROCframe$deathDateUnix == 0]
